@@ -81,21 +81,31 @@ cd packages/tools && bun run build
 Create a `.env` file in your project root:
 
 ```bash
-# Required
+# OpenRouter API (Required for AI features)
+OPENROUTER_API_KEY=your-openrouter-api-key
+
+# Optional - Supermemory API for persistence
 SUPERMEMORY_API_KEY=your-supermemory-api-key
-
-# Optional - Override base URL
 SUPERMEMORY_BASE_URL=https://api.supermemory.com
-
-# Optional - For testing
-OPENAI_API_KEY=your-openai-key  # For embeddings
 ```
+
+### AI Models (via OpenRouter)
+
+| Model Type | Model ID | Dimensions |
+|------------|----------|------------|
+| **Embeddings** | `qwen/qwen3-embedding-8b` | 4096 |
+| **LLM** | `openai/gpt-5.1` | - |
 
 ### 5. Import the Module
 
 ```typescript
 // From the tools package (internal usage)
 import {
+  // OpenRouter AI Client
+  createOpenRouterClient,
+  OpenRouterClient,
+  OPENROUTER_CONFIG,
+
   // Reducers
   reduceByKind,
   reduceSourceCode,
@@ -141,6 +151,57 @@ import {
 ---
 
 ## Configuration
+
+### OpenRouter Configuration (AI Client)
+
+```typescript
+import { createOpenRouterClient } from "@supermemory/tools/exploit-research"
+
+const openrouter = createOpenRouterClient({
+  // Required: Your OpenRouter API key
+  apiKey: process.env.OPENROUTER_API_KEY!,
+
+  // Optional: Override models (defaults shown)
+  embeddingModel: "qwen/qwen3-embedding-8b",  // 4096 dimensions
+  llmModel: "openai/gpt-5.1",
+
+  // Optional: Site info for OpenRouter dashboard
+  siteUrl: "https://your-site.com",
+  siteName: "Your App Name",
+
+  // Optional: Enable verbose logging
+  verbose: true,
+})
+
+// Generate embeddings
+const embedding = await openrouter.embed("smart contract code here")
+console.log(`Embedding dimensions: ${embedding.length}`)  // 4096
+
+// Chat with LLM
+const response = await openrouter.chat("Analyze this contract for vulnerabilities", {
+  systemPrompt: "You are a smart contract security expert",
+  maxTokens: 4096,
+  temperature: 0.3,
+})
+
+// Analyze content
+const analysis = await openrouter.analyze(contractCode, "vulnerability")
+
+// Generate exploit test
+const testCode = await openrouter.generateExploitTest({
+  targetContract: "Pool",
+  vulnerability: "Reentrancy in withdraw function",
+  attackPath: ["Deposit ETH", "Call withdraw", "Reenter in fallback"],
+  expectedProfit: 100000,
+})
+
+// Check similarity (dedup)
+const { isDuplicate, similarity } = await openrouter.checkSimilarity(
+  newHypothesis,
+  existingEmbeddings,
+  0.85  // threshold
+)
+```
 
 ### Middleware Configuration
 
